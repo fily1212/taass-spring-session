@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Gestione Task</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    #taskList {
+      margin-top: 20px;
+    }
+    .taskItem {
+      margin: 5px 0;
+    }
+    .deleteBtn {
+      margin-left: 10px;
+      color: red;
+      cursor: pointer;
+    }
+    #usernameSection {
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+<h1>Gestione Task - Utente: <span id="usernameLabel">Anonimo</span></h1>
+
+<div id="usernameSection">
+  <input type="text" id="usernameInput" placeholder="Inserisci il tuo nome">
+  <button onclick="setUsername()">Salva nome</button>
+</div>
+
+<div>
+  <input type="text" id="taskInput" placeholder="Inserisci un nuovo task">
+  <button onclick="addTask()">Aggiungi Task</button>
+</div>
+
+<div id="taskList">
+  <!-- La lista dei task verrà popolata qui -->
+</div>
+
+<script>
+  const apiUrl = '/api/tasks';
+
+  // === USERNAME ===
+
+  async function fetchUsername() {
+    try {
+      const res = await fetch(`${apiUrl}/username`);
+      if (!res.ok) throw new Error('Errore nel recupero del nome');
+      const username = await res.text();
+      document.getElementById('usernameLabel').textContent = username;
+    } catch (err) {
+      console.error('Errore fetchUsername:', err);
+    }
+  }
+
+  async function setUsername() {
+    const username = document.getElementById('usernameInput').value.trim();
+    if (username === '') {
+      alert('Inserisci un nome valido!');
+      return;
+    }
+    try {
+      const res = await fetch(`${apiUrl}/username?username=${encodeURIComponent(username)}`, {
+        method: 'POST'
+      });
+      if (!res.ok) throw new Error('Errore nel salvataggio del nome');
+      fetchUsername();
+    } catch (err) {
+      console.error('Errore setUsername:', err);
+    }
+  }
+
+  // === TASKS ===
+
+  async function fetchTasks() {
+    try {
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error('Errore nel recupero dei task');
+      }
+      const tasks = await response.json();
+      const taskList = document.getElementById('taskList');
+      taskList.innerHTML = '';
+      tasks.forEach(task => {
+        const taskItem = document.createElement('div');
+        taskItem.className = 'taskItem';
+        taskItem.textContent = task.description;
+        const deleteBtn = document.createElement('span');
+        deleteBtn.className = 'deleteBtn';
+        deleteBtn.textContent = '✖';
+        deleteBtn.onclick = () => deleteTask(task.id);
+        taskItem.appendChild(deleteBtn);
+        taskList.appendChild(taskItem);
+      });
+    } catch (error) {
+      console.error('Errore:', error);
+    }
+  }
+
+  async function addTask() {
+    const taskInput = document.getElementById('taskInput');
+    const taskDescription = taskInput.value.trim();
+    if (taskDescription === '') {
+      alert('Inserisci una descrizione valida per il task.');
+      return;
+    }
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ description: taskDescription })
+      });
+      if (!response.ok) {
+        throw new Error('Errore nell\'aggiunta del task');
+      }
+      taskInput.value = '';
+      fetchTasks(); // Aggiorna la lista dei task
+    } catch (error) {
+      console.error('Errore:', error);
+    }
+  }
+
+  async function deleteTask(taskId) {
+    try {
+      const response = await fetch(`${apiUrl}/${taskId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) {
+        throw new Error('Errore nell\'eliminazione del task');
+      }
+      fetchTasks(); // Aggiorna la lista dei task
+    } catch (error) {
+      console.error('Errore:', error);
+    }
+  }
+
+  // All'avvio: carica username e task
+  window.onload = () => {
+    fetchUsername();
+    fetchTasks();
+  };
+</script>
+</body>
+</html>
