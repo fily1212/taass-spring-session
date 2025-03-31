@@ -3,8 +3,10 @@ package it.unito.jpasession.service;
 import it.unito.jpasession.repository.TaskRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -19,9 +21,10 @@ public class TaskCleanupService {
         this.taskRepository = taskRepository;
     }
 
+    @Transactional
     @Scheduled(fixedRate = 60000)
     public void cleanup() {
-        List<String> activeSessionIds = entityManager.createQuery("select SESSION_ID from SPRING_SESSION")
+        List<String> activeSessionIds = entityManager.createNativeQuery("select SESSION_ID from SPRING_SESSION")
                 .getResultList();
         taskRepository.deleteTasksNotInSession(activeSessionIds);
     }
